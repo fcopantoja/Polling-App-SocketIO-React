@@ -6,14 +6,13 @@ var io = require('socket.io-client');
 var Header = require('./Header');
 
 
-
-
 var APP = React.createClass({
 	getInitialState() {
 		return {
 			status: 'disconnected',
 			title: '',
-			dance:'yes please',
+			member: {},
+			audience: []
 		}
 	},
 
@@ -22,9 +21,18 @@ var APP = React.createClass({
 		this.socket.on('connect', this.connect);
 		this.socket.on('disconnect', this.disconnect);
 		this.socket.on('welcome', this.welcome);
+		this.socket.on('joined', this.joined);
+		this.socket.on('audience', this.updateAudience);
 	},
 	
 	connect() {
+
+		var member = (sessionStorage.member) ? JSON.parse(sessionStorage.member) : null;
+
+		if(member) {
+			this.emit('join', member);
+		}
+
 		this.setState({ status:'connected' });
 	},
 
@@ -35,12 +43,25 @@ var APP = React.createClass({
 	welcome(serverState) {
 		this.setState({title: serverState.title});
 	},
+
+	emit(eventName, payload) {
+		this.socket.emit(eventName, payload);
+	},
+
+	joined(member) {
+		this.setState({member: member});
+		sessionStorage.member = JSON.stringify(member);
+	},
+
+	updateAudience(newAudience) {
+		this.setState({audience: newAudience});
+	},
 	
 	render () {
 		return (
 			<div>
 				<Header title={this.state.title} status={this.state.status}/>
-				<RouteHandler {... this.state}/>
+				<RouteHandler {... this.state} emit={this.emit} />
 			</div>
 		);
 	}
